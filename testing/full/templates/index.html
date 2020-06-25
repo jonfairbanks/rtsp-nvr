@@ -4,6 +4,31 @@
   </head>
   <body>
     <h1>Pi Video Surveillance</h1>
-    <img src="{{ url_for('video_feed') }}">
+    {% for cam in cams %}
+        <img src="{{ url_for('video_feed', id='0') }}">
+        <tr>
+        
+        {% for attr in cam %}
+            <td>{{ attr }}</td>
+        {% endfor %}
+        </tr>
+    {% endfor %}
   </body>
+  <hr/>
+  <h3>Add a camera</h3>
+  <form action="/cams" method="post">
+    <div>
+        <label for="name">name:</label>
+        <input type="text" id="name" name="name"/>
+    </div>
+    <div>
+        <label for="url">url:</label>
+        <input type="text" id="url"  name="url"/>
+    </div>
+
+
+    <div class="button">
+        <button type="submit">Add Camera</button>
+    </div>
+</form>
 </html>

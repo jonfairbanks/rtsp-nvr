@@ -7,12 +7,19 @@ from imutils.video import VideoStream
 from flask import Response
 from flask import Flask
 from flask import render_template
+from flask import g
+from flask import request
+from flask import redirect
+from flask import url_for
 import threading
 import argparse
 import datetime
 import imutils
 import time
 import cv2
+import sqlite3
+
+DATABASE = 'database.db'
 
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
@@ -23,24 +30,59 @@ lock = threading.Lock()
 # initialize a flask object
 app = Flask(__name__)
 
-# initialize the video stream and allow the camera sensor to
-# warmup
-#vs = VideoStream(usePiCamera=1).start()
+####### db stuff
+def init_db():
+    with app.app_context():
+        db = get_db()
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
 
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+    return db
 
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
+def create_cam(cam):
+    sql = ''' INSERT INTO cams(camname,camurl) VALUES(?,?) '''
+    cur = get_db().execute(sql, cam)
+    get_db().commit()
+    cur.close()
+    return None
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+####### end db stuff
 
 @app.route("/")
 def index():
-	# return the rendered template
-	return render_template("index.html")
+    cams = query_db('select * from cams')
+    print(cams)
+    return render_template("index.html", cams = cams)
 
-def detect_motion(frameCount):
+def detect_motion(cam):
+
+	frameCount = 32
 	# grab global references to the video stream, output frame, and
 	# lock variables
 	global outputFrame, lock
-	vs = cv2.VideoCapture("rtsp://192.168.0.30:5554", cv2.CAP_FFMPEG)
-	
+	camname, camurl = cam
+	# initialize the video stream and allow the camera sensor to
+	# warmup
+	vs = cv2.VideoCapture(camurl, cv2.CAP_FFMPEG)
 	time.sleep(2.0)
+	
 	# initialize the motion detector and the total number of frames
 	# read thus far
 	md = SingleMotionDetector(accumWeight=0.1)
@@ -51,7 +93,6 @@ def detect_motion(frameCount):
 		# read the next frame from the video stream, resize it,
 		# convert the frame to grayscale, and blur it
 		f, frame = vs.read()
-		cv2.imshow("RTSP NVR",frame)
 		frame = imutils.resize(frame, width=400)
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		gray = cv2.GaussianBlur(gray, (7, 7), 0)
@@ -111,12 +152,22 @@ def generate():
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
 
-@app.route("/video_feed")
-def video_feed():
+@app.route('/video_feed/<string:id>/', methods=["GET"])
+def video_feed(id):
 	# return the response generated along with the specific media
 	# type (mime type)
 	return Response(generate(),
 		mimetype = "multipart/x-mixed-replace; boundary=frame")
+
+@app.route('/cams', methods=['POST'])
+def post():
+    name=request.form['name']
+    url=request.form['url']
+
+    cam=(name, url)
+    create_cam(cam)
+
+    return redirect('/')
 
 # check to see if this is the main thread of execution
 def webstreaming():
@@ -130,11 +181,19 @@ def webstreaming():
 		help="# of frames used to construct the background model")
 	args = vars(ap.parse_args())
 
-	# start a thread that will perform motion detection
-	t = threading.Thread(target=detect_motion, args=(
-		args["frame_count"],))
-	t.daemon = True
-	t.start()
+	# initdb
+	init_db()
+
+	# read cams from db
+	with app.app_context():
+		cams = query_db('select * from cams')
+		for cam in cams:
+			print(cam)
+			# start a thread that will perform motion detection for each cam
+			t = threading.Thread(target=detect_motion, args=(
+				cam,))
+			t.daemon = True
+			t.start()
 
 	# start the flask app
 	app.run(host=args["ip"], port=args["port"], debug=True,

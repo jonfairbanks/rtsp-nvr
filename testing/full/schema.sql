@@ -1,0 +1,1 @@
+create table if not exists cams(camname varchar(32), camurl varchar(256));
