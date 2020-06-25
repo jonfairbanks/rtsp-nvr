@@ -5,13 +5,12 @@
   <body>
     <h1>Pi Video Surveillance</h1>
     {% for cam in cams %}
-        <img src="{{ url_for('video_feed', id='0') }}">
-        <tr>
-        
-        {% for attr in cam %}
-            <td>{{ attr }}</td>
-        {% endfor %}
-        </tr>
+      <div>
+        <h3>{{cam[1]}}</h3>
+        <img src="{{ url_for('video_feed', id=cam[0]) }}">
+        <br>
+        <i>{{cam[2]}}</i>
+      </div>
     {% endfor %}
   </body>
   <hr/>

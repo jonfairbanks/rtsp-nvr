@@ -24,7 +24,7 @@ DATABASE = 'database.db'
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
-outputFrame = None
+outputFrame = {}
 lock = threading.Lock()
 
 # initialize a flask object
@@ -54,7 +54,10 @@ def create_cam(cam):
     sql = ''' INSERT INTO cams(camname,camurl) VALUES(?,?) '''
     cur = get_db().execute(sql, cam)
     get_db().commit()
+    lastrowid=cur.lastrowid
+    startMonitoringThread(str(lastrowid))
     cur.close()
+
     return None
 
 @app.teardown_appcontext
@@ -67,7 +70,7 @@ def close_connection(exception):
 
 @app.route("/")
 def index():
-    cams = query_db('select * from cams')
+    cams = query_db('select rowid, camname, camurl from cams')
     print(cams)
     return render_template("index.html", cams = cams)
 
@@ -77,7 +80,7 @@ def detect_motion(cam):
 	# grab global references to the video stream, output frame, and
 	# lock variables
 	global outputFrame, lock
-	camname, camurl = cam
+	camid, camname, camurl = cam
 	# initialize the video stream and allow the camera sensor to
 	# warmup
 	vs = cv2.VideoCapture(camurl, cv2.CAP_FFMPEG)
@@ -126,9 +129,9 @@ def detect_motion(cam):
 		# acquire the lock, set the output frame, and release the
 		# lock
 		with lock:
-			outputFrame = frame.copy()
+			outputFrame[str(camid)] = frame.copy()
 	vs.release()	
-def generate():
+def generate(id):
 	# grab global references to the output frame and lock variables
 	global outputFrame, lock
 
@@ -138,11 +141,11 @@ def generate():
 		with lock:
 			# check if the output frame is available, otherwise skip
 			# the iteration of the loop
-			if outputFrame is None:
+			if outputFrame[id] is None:
 				continue
 
 			# encode the frame in JPEG format
-			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
+			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame[id])
 
 			# ensure the frame was successfully encoded
 			if not flag:
@@ -156,7 +159,7 @@ def generate():
 def video_feed(id):
 	# return the response generated along with the specific media
 	# type (mime type)
-	return Response(generate(),
+	return Response(generate(id),
 		mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 @app.route('/cams', methods=['POST'])
@@ -168,6 +171,14 @@ def post():
     create_cam(cam)
 
     return redirect('/')
+
+def startMonitoringThread(camid):
+	global outputFrame
+	cam = query_db('select rowid, camname, camurl from cams where rowid=?', camid, one=True)
+	outputFrame[str(camid)] = None
+	t = threading.Thread(target=detect_motion, args=(cam,))
+	t.daemon = True
+	t.start()
 
 # check to see if this is the main thread of execution
 def webstreaming():
@@ -186,14 +197,12 @@ def webstreaming():
 
 	# read cams from db
 	with app.app_context():
-		cams = query_db('select * from cams')
+		cams = query_db('select rowid, camname, camurl from cams')
 		for cam in cams:
 			print(cam)
+			camid, camname, camurl = cam
 			# start a thread that will perform motion detection for each cam
-			t = threading.Thread(target=detect_motion, args=(
-				cam,))
-			t.daemon = True
-			t.start()
+			startMonitoringThread(str(camid))
 
 	# start the flask app
 	app.run(host=args["ip"], port=args["port"], debug=True,
