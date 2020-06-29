@@ -4,6 +4,7 @@ import imutils
 import datetime
 import time
 import globfile
+import np
 from imageprocessors.motion_detection import SingleMotionDetector
 
 
@@ -24,7 +25,7 @@ def capture_stream(cam):
 	# loop over frames from the video stream
 	while True:
 		# read the frame from video stream
-		f, frame = vs.read()
+		success, frame = vs.read()
 		#frame = imutils.resize(frame, width=1280)
 
 		# grab the current timestamp and draw it on the frame
@@ -34,9 +35,14 @@ def capture_stream(cam):
 			#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
 		# acquire the lock, set the output frame, and release the
-		# lock
-		with globfile.lock:
-			globfile.outputFrame[cam.id] = frame.copy()
+		if success:# lock
+			with globfile.lock:
+				globfile.outputFrame[cam.id] = frame.copy()
+		else:
+			with globfile.lock:
+				red = (255, 0, 0)
+				blank_image = create_blank(1280,720,rgb_color=red)
+				globfile.outputFrame[cam.id] = blank_image
 	vs.release()
 
 def generate(id):
@@ -60,3 +66,14 @@ def generate(id):
 		# yield the output frame in the byte format
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
+
+def create_blank(width, height, rgb_color=(50, 50, 50)):
+    # Create black blank image
+    image = np.zeros((height, width, 3), np.uint8)
+
+    # Since OpenCV uses BGR, convert the color first
+    color = tuple(reversed(rgb_color))
+    # Fill image with color
+    image[:] = color
+
+    return image
