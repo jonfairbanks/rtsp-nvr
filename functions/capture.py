@@ -1,6 +1,13 @@
+import threading
+import cv2
+import imutils
+import datetime
+import time
+import globfile
+from imageprocessors.motion_detection import SingleMotionDetector
+
 def startMonitoringThread(cam):
-	global outputFrame
-	outputFrame[cam.id] = None
+	globfile.outputFrame[cam.id] = None
 	t = threading.Thread(target=capture_stream, args=(cam,))
 	t.daemon = True
 	t.start()
@@ -8,9 +15,7 @@ def startMonitoringThread(cam):
 def capture_stream(cam):
 
 	frameCount = 32
-	# grab global references to the video stream, output frame, and
-	# lock variables
-	global outputFrame, lock
+
 	# initialize the video stream and allow the camera sensor to
 	# warmup
 	vs = cv2.VideoCapture(cam.url, cv2.CAP_FFMPEG)
@@ -58,25 +63,23 @@ def capture_stream(cam):
 
 		# acquire the lock, set the output frame, and release the
 		# lock
-		with lock:
-			outputFrame[cam.id] = frame.copy()
+		with globfile.lock:
+			globfile.outputFrame[cam.id] = frame.copy()
 	vs.release()
 
 def generate(id):
-	# grab global references to the output frame and lock variables
-	global outputFrame, lock
 
 	# loop over frames from the output stream
 	while True:
 		# wait until the lock is acquired
-		with lock:
+		with globfile.lock:
 			# check if the output frame is available, otherwise skip
 			# the iteration of the loop
-			if outputFrame[id] is None:
+			if globfile.outputFrame[id] is None:
 				continue
 
 			# encode the frame in JPEG format
-			(flag, encodedImage) = cv2.imencode(".jpg", outputFrame[id])
+			(flag, encodedImage) = cv2.imencode(".jpg", globfile.outputFrame[id])
 
 			# ensure the frame was successfully encoded
 			if not flag:
