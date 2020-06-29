@@ -21,28 +21,36 @@ def capture_stream(cam):
 	# warmup
 	vs = cv2.VideoCapture(cam.url, cv2.CAP_FFMPEG)
 	time.sleep(1)
-
+	connected = True
 	# loop over frames from the video stream
 	while True:
-		# read the frame from video stream
-		success, frame = vs.read()
-		#frame = imutils.resize(frame, width=1280)
+		if connected: # read the frame from video stream
+			success, frame = vs.read()
+			#frame = imutils.resize(frame, width=1280)
+			
 
-		# grab the current timestamp and draw it on the frame
-		#timestamp = datetime.datetime.now()
-		#cv2.putText(frame, timestamp.strftime(
-			#"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
-			#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+			# grab the current timestamp and draw it on the frame
+			#timestamp = datetime.datetime.now()
+			#cv2.putText(frame, timestamp.strftime(
+				#"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
+				#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
-		# acquire the lock, set the output frame, and release the
-		if success:# lock
-			with globfile.lock:
-				globfile.outputFrame[cam.id] = frame.copy()
+			# acquire the lock, set the output frame, and release the
+			if success:# lock
+				with globfile.lock:
+					globfile.outputFrame[cam.id] = frame.copy()
+			else:
+				vs.release()
+				connected = False
+				with globfile.lock:
+					red = (255, 0, 0)
+					blank_image = create_blank(1280,720,rgb_color=red)
+					globfile.outputFrame[cam.id] = blank_image
 		else:
-			with globfile.lock:
-				red = (255, 0, 0)
-				blank_image = create_blank(1280,720,rgb_color=red)
-				globfile.outputFrame[cam.id] = blank_image
+			print('trying to reconnect to cam')
+			vs = cv2.VideoCapture(cam.url, cv2.CAP_FFMPEG)
+			time.sleep(1)
+			connected = True		
 	vs.release()
 
 def generate(id):
