@@ -12,6 +12,10 @@ __pycache__/
 *.jpg
 *.mpeg
 
+# DB files
+*.db
+migrations/
+
 # Distribution / packaging
 .Python
 build/

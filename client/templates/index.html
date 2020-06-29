@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>Pi Video Surveillance</title>
+  </head>
+  <body>
+    <h1>Pi Video Surveillance</h1>
+    {% for cam in cams %}
+      <div>
+        <h3>{{cam.name}}</h3>
+        <img src="{{ url_for('video_feed', id=cam.id) }}">
+        <br>
+        <i>{{cam.url}}</i>
+      </div>
+    {% endfor %}
+  </body>
+  <hr/>
+  <h3>Add a camera</h3>
+
+</html>

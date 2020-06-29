@@ -2,7 +2,7 @@
 # python webstreaming.py --ip 0.0.0.0 --port 8000
 
 # import the necessary packages
-from pyimagesearch.motion_detection import SingleMotionDetector
+from imageprocessors.motion_detection import SingleMotionDetector
 from imutils.video import VideoStream
 from flask import Response
 from flask import Flask
@@ -18,6 +18,12 @@ import imutils
 import time
 import cv2
 import sqlite3
+from flask import jsonify
+from flask_restful import Api
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import default_exceptions
+import settings
 
 DATABASE = 'database.db'
 
@@ -28,62 +34,49 @@ outputFrame = {}
 lock = threading.Lock()
 
 # initialize a flask object
-app = Flask(__name__)
+app = Flask(__name__, static_folder='client/static', template_folder='client/templates')
 
-####### db stuff
-def init_db():
-    with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
+@app.errorhandler(Exception)
+def handle_error(e):
+    code = 500
+    if isinstance(e, HTTPException):
+        code = e.code
+    return jsonify(error=str(e)), code
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-    return db
+for ex in default_exceptions:
+    app.register_error_handler(ex, handle_error)
 
-def query_db(query, args=(), one=False):
-    cur = get_db().execute(query, args)
-    rv = cur.fetchall()
-    cur.close()
-    return (rv[0] if rv else None) if one else rv
 
-def create_cam(cam):
-    sql = ''' INSERT INTO cams(camname,camurl) VALUES(?,?) '''
-    cur = get_db().execute(sql, cam)
-    get_db().commit()
-    lastrowid=cur.lastrowid
-    startMonitoringThread(str(lastrowid))
-    cur.close()
+app.config['SQLALCHEMY_DATABASE_URI'] = settings.SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = settings.SQLALCHEMY_TRACK_MODIFICATIONS
+app.config['BUNDLE_ERRORS'] = settings.BUNDLE_ERRORS
 
-    return None
+db = SQLAlchemy(app)
+api = Api(app)
+api.prefix = '/api'
+from endpoints.cams.model import Cam
+from endpoints.cams.resource import CamsResource
+api.add_resource(CamsResource, '/cams', '/cams/<int:cam_id>')
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
 
-####### end db stuff
 
 @app.route("/")
 def index():
-    cams = query_db('select rowid, camname, camurl from cams')
-    print(cams)
+    cams = Cam.query.all()
     return render_template("index.html", cams = cams)
 
-def detect_motion(cam):
+@app.route('/video_feed/<int:id>/', methods=["GET"])
+def video_feed(id):
+	return Response(generate(id), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
+def capture_stream(cam):
 	frameCount = 32
 	# grab global references to the video stream, output frame, and
 	# lock variables
 	global outputFrame, lock
-	camid, camname, camurl = cam
 	# initialize the video stream and allow the camera sensor to
 	# warmup
-	vs = cv2.VideoCapture(camurl, cv2.CAP_FFMPEG)
+	vs = cv2.VideoCapture(cam.url, cv2.CAP_FFMPEG)
 	time.sleep(2.0)
 	
 	# initialize the motion detector and the total number of frames
@@ -129,8 +122,13 @@ def detect_motion(cam):
 		# acquire the lock, set the output frame, and release the
 		# lock
 		with lock:
-			outputFrame[str(camid)] = frame.copy()
-	vs.release()	
+			outputFrame[cam.id] = frame.copy()
+	vs.release()
+
+
+
+
+
 def generate(id):
 	# grab global references to the output frame and lock variables
 	global outputFrame, lock
@@ -155,28 +153,10 @@ def generate(id):
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
 
-@app.route('/video_feed/<string:id>/', methods=["GET"])
-def video_feed(id):
-	# return the response generated along with the specific media
-	# type (mime type)
-	return Response(generate(id),
-		mimetype = "multipart/x-mixed-replace; boundary=frame")
-
-@app.route('/cams', methods=['POST'])
-def post():
-    name=request.form['name']
-    url=request.form['url']
-
-    cam=(name, url)
-    create_cam(cam)
-
-    return redirect('/')
-
-def startMonitoringThread(camid):
+def startMonitoringThread(cam):
 	global outputFrame
-	cam = query_db('select rowid, camname, camurl from cams where rowid=?', camid, one=True)
-	outputFrame[str(camid)] = None
-	t = threading.Thread(target=detect_motion, args=(cam,))
+	outputFrame[cam.id] = None
+	t = threading.Thread(target=capture_stream, args=(cam,))
 	t.daemon = True
 	t.start()
 
@@ -192,17 +172,12 @@ def webstreaming():
 		help="# of frames used to construct the background model")
 	args = vars(ap.parse_args())
 
-	# initdb
-	init_db()
-
 	# read cams from db
 	with app.app_context():
-		cams = query_db('select rowid, camname, camurl from cams')
+		cams = Cam.query.all()
 		for cam in cams:
-			print(cam)
-			camid, camname, camurl = cam
 			# start a thread that will perform motion detection for each cam
-			startMonitoringThread(str(camid))
+			startMonitoringThread(cam)
 
 	# start the flask app
 	app.run(host=args["ip"], port=args["port"], debug=True,
