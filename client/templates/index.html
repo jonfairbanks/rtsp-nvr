@@ -21,21 +21,6 @@
           <img src="{{ url_for('video_feed', id=cam.id) }}" width="1280" height="720">
         </div>
         {% endfor %}
-        <hr/>
-        <h3>Add a Camera</h3>
-        <form action="/cams" method="post">
-          <div>
-              <label for="name">Name:</label>
-              <input type="text" id="name" name="name"/>
-          </div>
-          <div>
-              <label for="url">URL:</label>
-              <input type="text" id="url"  name="url"/>
-          </div>
-          <div class="button">
-              <button type="submit">Add Camera</button>
-          </div>
-        </form>
       </div>
     </div>
     <script type="text/jsx">
