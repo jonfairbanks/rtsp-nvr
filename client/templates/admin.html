@@ -1,13 +1,20 @@
 <html style="background-color: #24292E; color: #9DA59F;">
   <head lang="en">
     <meta charset="UTF-8">
-    <title>RTSP NVR</title>
+    <title>Admin Panel | RTSP NVR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
     <link rel="manifest" href="images/site.webmanifest">
   </head>
+  <style>
+    table { border-collapse: collapse; }
+    table, th, td {
+      border: 1px solid #9DA59F;
+      padding: 5px;
+    }
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react-dom.js"></script>
   <script src="http://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
@@ -15,12 +22,26 @@
     <div class="container">
       <div id="header"></div>
       <div id="content" style="margin: 8px;">
-        {% for cam in cams %}
         <div>
-          <h3>{{cam.name}}</h3>
-          <img src="{{ url_for('video_feed', id=cam.id) }}" width="1280" height="720">
+          <h2>Cameras</h2>
+          <table>
+            <thead style="text-align: left;">
+              <th>Camera Name</th>
+              <th>Stream URL</th>
+              <th colspan="2">Options</th>
+            </thead>
+            <tbody>
+              {% for cam in cams %}
+                <tr>
+                  <td>{{cam.name}}</td>
+                  <td>{{cam.url}}</td>
+                  <td><a href=#>Edit</a></td>
+                  <td><a href=#>Delete</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        {% endfor %}
       </div>
     </div>
     <script type="text/jsx">
@@ -44,10 +65,10 @@
         render: function() {
           return (
             <div style={style}>
-              <a href="#">
+              <a href="/">
                 <img src="images/header.png" alt="RTSP NVR" style={imgStyle} />
               </a>
-              <h1>RTSP NVR</h1>
+              <h1>Admin Panel</h1>
             </div>
           );
         }

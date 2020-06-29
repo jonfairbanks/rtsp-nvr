@@ -45,6 +45,11 @@ def index():
     cams = Cam.query.all()
     return render_template("index.html", cams = cams)
 
+@app.route("/admin")
+def admin():
+    cams = Cam.query.all()
+    return render_template("admin.html", cams = cams)
+
 @app.route('/video_feed/<int:id>/', methods=["GET"])
 def video_feed(id):
 	return Response(capture.generate(id), mimetype = "multipart/x-mixed-replace; boundary=frame")
