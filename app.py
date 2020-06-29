@@ -34,7 +34,10 @@ outputFrame = {}
 lock = threading.Lock()
 
 # initialize a flask object
-app = Flask(__name__, static_folder='client/static', template_folder='client/templates')
+app = Flask(__name__, 
+			static_url_path='', 
+			static_folder='client/static', 
+			template_folder='client/templates')
 
 @app.errorhandler(Exception)
 def handle_error(e):
