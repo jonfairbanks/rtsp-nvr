@@ -1,19 +1,75 @@
-<html>
-  <head>
-    <title>Pi Video Surveillance</title>
+<html style="background-color: #24292E; color: #9DA59F;">
+  <head lang="en">
+    <meta charset="UTF-8">
+    <title>RTSP NVR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="manifest" href="images/site.webmanifest">
   </head>
-  <body>
-    <h1>Pi Video Surveillance</h1>
-    {% for cam in cams %}
-      <div>
-        <h3>{{cam.name}}</h3>
-        <img src="{{ url_for('video_feed', id=cam.id) }}">
-        <br>
-        <i>{{cam.url}}</i>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.1.0/react-dom.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
+  <body style="margin: 0px;padding: 0px;">
+    <div class="container">
+      <div id="header"></div>
+      <div id="content" style="margin: 8px;">
+        {% for cam in cams %}
+        <div>
+          <h3>{{cam.name}}</h3>
+          <img src="{{ url_for('video_feed', id=cam.id) }}" width="1280" height="720">
+        </div>
+        {% endfor %}
+        <hr/>
+        <h3>Add a Camera</h3>
+        <form action="/cams" method="post">
+          <div>
+              <label for="name">Name:</label>
+              <input type="text" id="name" name="name"/>
+          </div>
+          <div>
+              <label for="url">URL:</label>
+              <input type="text" id="url"  name="url"/>
+          </div>
+          <div class="button">
+              <button type="submit">Add Camera</button>
+          </div>
+        </form>
       </div>
-    {% endfor %}
-  </body>
-  <hr/>
-  <h3>Add a camera</h3>
+    </div>
+    <script type="text/jsx">
+      /*** @jsx React.DOM */
 
+      const style = {
+        color: "#D6CCBD",
+        backgroundColor: "#1B1D23",
+        fontFamily: "-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji",
+        paddingLeft: "10px"
+      }
+      
+      const imgStyle = {
+        width: "55px",
+        height: "auto",
+        padding: "5px",
+        float: "right",
+      }
+
+      var header = React.createClass({
+        render: function() {
+          return (
+            <div style={style}>
+              <img src="images/header.png" alt="RTSP NVR" style={imgStyle} />
+              <h1>RTSP NVR</h1>
+            </div>
+          );
+        }
+      });
+
+      ReactDOM.render(
+        React.createElement(header, null),
+        document.getElementById('header')
+      );
+    </script>
+  </body>
 </html>
