@@ -7,7 +7,8 @@ from functions import capture
 cam_fields = {
     'id': fields.Integer,
     'name': fields.String,
-    'url': fields.String
+    'url': fields.String,
+    'running': fields.Boolean
 }
 
 cam_list_fields = {
@@ -57,7 +58,7 @@ class CamsResource(Resource):
         db.session.add(cam)
         db.session.commit()
         #START MONITORING
-        capture.startMonitoringThread(cam)
+        capture.startCaptureDevice(cam)
         return cam
 
     @marshal_with(cam_fields)
@@ -70,7 +71,11 @@ class CamsResource(Resource):
         if 'url' in request.json:
             cam.url = request.json['url']
 
+        if 'running' in request.json:
+            cam.running = request.json['running']
+
         db.session.commit()
+        capture.setCaptureDevice(cam)
         return cam
 
     @marshal_with(cam_fields)
