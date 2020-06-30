@@ -9,8 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import HTTPException
 from werkzeug.exceptions import default_exceptions
 import settings
-import globfile
-from functions import capture
+
 
 # initialize a flask object
 app = Flask(__name__, 
@@ -39,6 +38,8 @@ from endpoints.cams.model import Cam
 from endpoints.cams.resource import CamsResource
 api.add_resource(CamsResource, '/cams', '/cams/<int:cam_id>')
 
+from functions import capture
+
 # Define Routes
 @app.route("/")
 def index():
@@ -52,7 +53,7 @@ def admin():
 
 @app.route('/video_feed/<int:id>/', methods=["GET"])
 def video_feed(id):
-	return Response(capture.generate(id), mimetype = "multipart/x-mixed-replace; boundary=frame")
+	return Response(capture.generateFrames(id), mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 # Main function
 def webstreaming():
@@ -71,7 +72,7 @@ def webstreaming():
 		cams = Cam.query.all()
 		for cam in cams:
 			# start a thread that will perform motion detection for each cam
-			capture.startMonitoringThread(cam)
+			capture.startCaptureDevice(cam)
 
 	# start the flask app
 	app.run(host=args["ip"], port=args["port"], debug=True,
