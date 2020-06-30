@@ -31,16 +31,17 @@ class CaptureDevice(Thread):
 				#frame = imutils.resize(frame, width=1280)
 				
 
-				# grab the current timestamp and draw it on the frame
-				if self.timestamp:
-					timestamp = datetime.datetime.now()
-					cv2.putText(frame, timestamp.strftime(
-						"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
-						cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+				
 
 				# acquire the lock, set the output frame, and release the
 				if success:# lock
 					with lock:
+						# grab the current timestamp and draw it on the frame
+						if self.timestamp:
+							timestamp = datetime.datetime.now()
+							cv2.putText(frame, timestamp.strftime(
+								"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
+								cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 						self.outputFrame = frame.copy()
 				else:
 					vs.release()
