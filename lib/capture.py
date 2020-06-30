@@ -21,6 +21,7 @@ class CaptureDevice(Thread):
 		self.outputFrame = None
 		self.connected = True
 		self.timestamp = cam.timestamp
+		self.fps = 1/60
 	def run(self):
 		vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
 		time.sleep(1)
@@ -50,11 +51,13 @@ class CaptureDevice(Thread):
 						red = (255, 0, 0)
 						frame = create_frame(1280,720,"device disconnected",rgb_color=red)
 						self.outputFrame = frame
+				
 			else:
 				print('trying to connect to cam', self.name)
 				vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
 				time.sleep(1)
 				self.connected = True	
+			time.sleep(self.fps)
 					
 		vs.release()
 
@@ -109,6 +112,7 @@ def generateFrames(id):
 		# yield the output frame in the byte format
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
+		time.sleep(Devices[id].fps)
 
 def create_frame(width, height, text, rgb_color=(50, 50, 50),):
     # Create black blank image
