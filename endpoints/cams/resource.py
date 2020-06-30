@@ -84,5 +84,5 @@ class CamsResource(Resource):
 
         db.session.delete(cam)
         db.session.commit()
-
+        capture.deleteCaptureDevice(cam)
         return cam
