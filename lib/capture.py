@@ -20,6 +20,7 @@ class CaptureDevice(Thread):
 		self.url = cam.url
 		self.outputFrame = None
 		self.connected = True
+		self.timestamp = cam.timestamp
 	def run(self):
 		vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
 		time.sleep(1)
@@ -31,10 +32,11 @@ class CaptureDevice(Thread):
 				
 
 				# grab the current timestamp and draw it on the frame
-				#timestamp = datetime.datetime.now()
-				#cv2.putText(frame, timestamp.strftime(
-					#"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
-					#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+				if self.timestamp:
+					timestamp = datetime.datetime.now()
+					cv2.putText(frame, timestamp.strftime(
+						"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
+						cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
 				# acquire the lock, set the output frame, and release the
 				if success:# lock

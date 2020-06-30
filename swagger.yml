@@ -125,6 +125,9 @@ definitions:
       running:
         type: "boolean"
         example: true
+      timestamp:
+        type: "boolean"
+        example: true
 externalDocs:
   description: "Find out more about rtsp-nvr"
   url: "https://github.com/Fairbanks-io/rtsp-nvr"
