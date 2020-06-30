@@ -8,7 +8,8 @@ cam_fields = {
     'id': fields.Integer,
     'name': fields.String,
     'url': fields.String,
-    'running': fields.Boolean
+    'running': fields.Boolean,
+    'timestamp': fields.Boolean
 }
 
 cam_list_fields = {
@@ -73,6 +74,9 @@ class CamsResource(Resource):
 
         if 'running' in request.json:
             cam.running = request.json['running']
+
+        if 'timestamp' in request.json:
+            cam.timestamp = request.json['timestamp']
 
         db.session.commit()
         capture.setCaptureDevice(cam)
