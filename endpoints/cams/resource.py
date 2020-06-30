@@ -2,7 +2,7 @@ from flask_restful import Resource, reqparse, request
 from flask_restful import fields, marshal_with, marshal
 from .model import Cam
 from app import db
-from functions import capture
+from lib import capture
 
 cam_fields = {
     'id': fields.Integer,

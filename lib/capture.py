@@ -4,7 +4,7 @@ import imutils
 import datetime
 import time
 import np
-from imageprocessors.motion_detection import SingleMotionDetector
+from lib.imageprocessors.motion_detection import SingleMotionDetector
 
 from threading import Thread
 from endpoints.cams.model import Cam
@@ -45,8 +45,8 @@ class CaptureDevice(Thread):
 					self.connected = False
 					with lock:
 						red = (255, 0, 0)
-						blank_image = create_blank(1280,720,rgb_color=red)
-						self.outputFrame = blank_image
+						frame = create_frame(1280,720,"device disconnected",rgb_color=red)
+						self.outputFrame = frame
 			else:
 				print('trying to connect to cam', self.name)
 				vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
@@ -57,8 +57,8 @@ class CaptureDevice(Thread):
 
 		with lock:
 			blue = (0, 0, 255)
-			blank_image = create_blank(1280,720,rgb_color=blue)
-			self.outputFrame = blank_image
+			frame = create_frame(1280,720,"device stopped",rgb_color=blue)
+			self.outputFrame = frame
 
 	def stop(self):
 		self.running = False
@@ -101,19 +101,19 @@ def generateFrames(id):
 					continue
 			else:
 				black = (0, 0, 0)
-				blank_image = create_blank(1280,720,rgb_color=black)
-				(flag, encodedImage) = cv2.imencode(".jpg", blank_image)
+				frame = create_frame(1280,720,"no device", rgb_color=black)
+				(flag, encodedImage) = cv2.imencode(".jpg", frame)
 		# yield the output frame in the byte format
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
 
-def create_blank(width, height, rgb_color=(50, 50, 50)):
+def create_frame(width, height, text, rgb_color=(50, 50, 50),):
     # Create black blank image
-    image = np.zeros((height, width, 3), np.uint8)
-
+    frame = np.zeros((height, width, 3), np.uint8)
     # Since OpenCV uses BGR, convert the color first
     color = tuple(reversed(rgb_color))
     # Fill image with color
-    image[:] = color
-
-    return image
+    frame[:] = color
+	# Add text to frame
+    cv2.putText(frame, text, (10, frame.shape[0] - 10),cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 255), 1)
+    return frame
