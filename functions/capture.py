@@ -21,39 +21,40 @@ class CaptureDevice(Thread):
 		self.outputFrame = None
 		self.connected = True
 	def run(self):
+		vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
+		time.sleep(1)
 		while self.running:
-			vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
-			time.sleep(1)
 			# loop over frames from the video stream
-			while True:
-				if self.connected: # read the frame from video stream
-					success, frame = vs.read()
-					#frame = imutils.resize(frame, width=1280)
-					
+			if self.connected: # read the frame from video stream
+				success, frame = vs.read()
+				#frame = imutils.resize(frame, width=1280)
+				
 
-					# grab the current timestamp and draw it on the frame
-					#timestamp = datetime.datetime.now()
-					#cv2.putText(frame, timestamp.strftime(
-						#"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
-						#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+				# grab the current timestamp and draw it on the frame
+				#timestamp = datetime.datetime.now()
+				#cv2.putText(frame, timestamp.strftime(
+					#"%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
+					#cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 
-					# acquire the lock, set the output frame, and release the
-					if success:# lock
-						with lock:
-							self.outputFrame = frame.copy()
-					else:
-						vs.release()
-						self.connected = False
-						with lock:
-							red = (255, 0, 0)
-							blank_image = create_blank(1280,720,rgb_color=red)
-							self.outputFrame = blank_image
+				# acquire the lock, set the output frame, and release the
+				if success:# lock
+					with lock:
+						self.outputFrame = frame.copy()
 				else:
-					print('trying to connect to cam', self.name)
-					vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
-					time.sleep(1)
-					self.connected = True		
-			vs.release()
+					vs.release()
+					self.connected = False
+					with lock:
+						red = (255, 0, 0)
+						blank_image = create_blank(1280,720,rgb_color=red)
+						self.outputFrame = blank_image
+			else:
+				print('trying to connect to cam', self.name)
+				vs = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
+				time.sleep(1)
+				self.connected = True	
+					
+		vs.release()
+
 		with lock:
 			blue = (0, 0, 255)
 			blank_image = create_blank(1280,720,rgb_color=blue)
@@ -76,6 +77,11 @@ def setCaptureDevice(cam):
 	capDevice.stop()
 	startCaptureDevice(cam)
 
+def deleteCaptureDevice(cam):
+	capDevice = Devices[cam.id]
+	capDevice.stop()
+	Devices.pop(cam.id, None)
+
 def generateFrames(id):
 	# loop over frames from the output stream
 	while True:
@@ -83,16 +89,20 @@ def generateFrames(id):
 		with lock:
 			# check if the output frame is available, otherwise skip
 			# the iteration of the loop
-			if Devices[id].outputFrame is None:
-				continue
+			if id in Devices:
+				if Devices[id].outputFrame is None:
+					continue
 
-			# encode the frame in JPEG format
-			(flag, encodedImage) = cv2.imencode(".jpg", Devices[id].outputFrame)
+				# encode the frame in JPEG format
+				(flag, encodedImage) = cv2.imencode(".jpg", Devices[id].outputFrame)
 
-			# ensure the frame was successfully encoded
-			if not flag:
-				continue
-
+				# ensure the frame was successfully encoded
+				if not flag:
+					continue
+			else:
+				black = (0, 0, 0)
+				blank_image = create_blank(1280,720,rgb_color=black)
+				(flag, encodedImage) = cv2.imencode(".jpg", blank_image)
 		# yield the output frame in the byte format
 		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
 			bytearray(encodedImage) + b'\r\n')
