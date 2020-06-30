@@ -38,7 +38,7 @@ from endpoints.cams.model import Cam
 from endpoints.cams.resource import CamsResource
 api.add_resource(CamsResource, '/cams', '/cams/<int:cam_id>')
 
-from functions import capture
+from lib import capture
 
 # Define Routes
 @app.route("/")
