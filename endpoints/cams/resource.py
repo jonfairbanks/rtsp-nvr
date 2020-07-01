@@ -2,12 +2,14 @@ from flask_restful import Resource, reqparse, request
 from flask_restful import fields, marshal_with, marshal
 from .model import Cam
 from app import db
-from functions import capture
+from lib import capture
 
 cam_fields = {
     'id': fields.Integer,
     'name': fields.String,
-    'url': fields.String
+    'url': fields.String,
+    'running': fields.Boolean,
+    'timestamp': fields.Boolean
 }
 
 cam_list_fields = {
@@ -57,7 +59,7 @@ class CamsResource(Resource):
         db.session.add(cam)
         db.session.commit()
         #START MONITORING
-        capture.startMonitoringThread(cam)
+        capture.startCaptureDevice(cam)
         return cam
 
     @marshal_with(cam_fields)
@@ -70,7 +72,14 @@ class CamsResource(Resource):
         if 'url' in request.json:
             cam.url = request.json['url']
 
+        if 'running' in request.json:
+            cam.running = request.json['running']
+
+        if 'timestamp' in request.json:
+            cam.timestamp = request.json['timestamp']
+
         db.session.commit()
+        capture.setCaptureDevice(cam)
         return cam
 
     @marshal_with(cam_fields)
@@ -79,5 +88,5 @@ class CamsResource(Resource):
 
         db.session.delete(cam)
         db.session.commit()
-
+        capture.deleteCaptureDevice(cam)
         return cam

@@ -1,0 +1,133 @@
+swagger: "2.0"
+info:
+  description: "API for controlling RTSP-NVR"
+  version: "1.0.0"
+  title: "RTSP-NVR"
+  termsOfService: "http://swagger.io/terms/"
+  contact:
+    email: "apiteam@swagger.io"
+  license:
+    name: "MIT"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "localhost:8000"
+basePath: "/api"
+schemes:
+- "https"
+- "http"
+paths:
+  /cams:
+    get:
+      summary: "Find all cams"
+      description: "Returns all cams"
+      operationId: "getAllCams"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Cam"
+    post:
+      summary: "Add a new camera"
+      description: "Add a new camera to the database"
+      operationId: "addCam"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Cam"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Camera that needs to be added to the database"
+        required: true
+        schema:
+          $ref: "#/definitions/Cam"
+  /cams/{camId}:
+    get:
+      summary: "Find cam by ID"
+      description: "Returns a single cam"
+      operationId: "getCamById"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "camId"
+        in: "path"
+        description: "ID of cam to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Cam"
+    put:
+      summary: "Update an existing cam"
+      description: ""
+      operationId: "updateCam"
+      consumes:
+      - "application/json"
+      - "application/xml"
+      produces:
+      - "application/xml"
+      - "application/json"
+      parameters:
+      - name: "camId"
+        in: "path"
+        description: "ID of cam to return"
+        required: true
+        type: "integer"
+        format: "int64"
+      - in: "body"
+        name: "body"
+        description: "Cam object that needs to be added to the store"
+        required: true
+        schema:
+          $ref: "#/definitions/Cam"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Cam"
+    delete:
+      summary: "Deletes a cam"
+      description: ""
+      operationId: "deleteCam"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "camId"
+        in: "path"
+        description: "ID of cam to delete"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Cam"
+definitions:
+  Cam:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+        example: "cam1"
+      url:
+        type: "string"
+        example: "rtsp://192.168.0.30:5554"
+      running:
+        type: "boolean"
+        example: true
+      timestamp:
+        type: "boolean"
+        example: true
+externalDocs:
+  description: "Find out more about rtsp-nvr"
+  url: "https://github.com/Fairbanks-io/rtsp-nvr"
