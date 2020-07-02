@@ -10,6 +10,7 @@ itsdangerous==0.24
 Jinja2==2.10.1
 jsonschema==2.6.0
 Mako==1.1.2
+setuptools==45
 MarkupSafe==1.0
 PyJWT==1.5.3
 python-dateutil==2.6.1
